@@ -318,3 +318,63 @@ func TestCreateProviderReturnsCodexProviderForOpenAIOAuth(t *testing.T) {
 	// which is not yet implemented in the new factory_provider.go
 	t.Skip("OpenAI OAuth via model_list not yet implemented")
 }
+
+func TestCreateProviderReturnsQwenOAuthProviderForQwenOAuth(t *testing.T) {
+	cfg := config.DefaultConfig()
+	cfg.Agents.Defaults.Model = "test-qwen-oauth"
+	cfg.ModelList = []config.ModelConfig{
+		{
+			ModelName:  "test-qwen-oauth",
+			Model:      "qwen/qwen-plus",
+			AuthMethod: "oauth",
+		},
+	}
+
+	provider, _, err := CreateProvider(cfg)
+	if err != nil {
+		t.Fatalf("CreateProvider() error = %v", err)
+	}
+
+	if _, ok := provider.(*QwenOAuthProvider); !ok {
+		t.Fatalf("provider type = %T, want *QwenOAuthProvider", provider)
+	}
+}
+
+func TestNormalizeQwenOAuthAPIBase(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		fallback string
+		want     string
+	}{
+		{
+			name:  "resource url without protocol gets normalized",
+			input: "custom-endpoint.com",
+			want:  "https://custom-endpoint.com/v1",
+		},
+		{
+			name:  "resource url keeps existing protocol",
+			input: "https://custom-endpoint.com",
+			want:  "https://custom-endpoint.com/v1",
+		},
+		{
+			name:  "resource url with v1 suffix is preserved",
+			input: "https://custom-endpoint.com/v1",
+			want:  "https://custom-endpoint.com/v1",
+		},
+		{
+			name:     "falls back to configured api base",
+			fallback: "https://fallback.example.com/base",
+			want:     "https://fallback.example.com/base/v1",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := normalizeQwenOAuthAPIBase(tt.input, tt.fallback)
+			if got != tt.want {
+				t.Fatalf("normalizeQwenOAuthAPIBase() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}

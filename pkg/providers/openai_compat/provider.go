@@ -33,6 +33,7 @@ type Provider struct {
 	apiBase        string
 	maxTokensField string // Field name for max tokens (e.g., "max_completion_tokens" for o1/glm models)
 	httpClient     *http.Client
+	extraHeaders   map[string]string
 }
 
 type Option func(*Provider)
@@ -49,6 +50,20 @@ func WithRequestTimeout(timeout time.Duration) Option {
 	return func(p *Provider) {
 		if timeout > 0 {
 			p.httpClient.Timeout = timeout
+		}
+	}
+}
+
+func WithHeaders(headers map[string]string) Option {
+	return func(p *Provider) {
+		if len(headers) == 0 {
+			return
+		}
+		if p.extraHeaders == nil {
+			p.extraHeaders = make(map[string]string, len(headers))
+		}
+		for key, value := range headers {
+			p.extraHeaders[key] = value
 		}
 	}
 }
@@ -175,6 +190,9 @@ func (p *Provider) Chat(
 	req.Header.Set("Content-Type", "application/json")
 	if p.apiKey != "" {
 		req.Header.Set("Authorization", "Bearer "+p.apiKey)
+	}
+	for key, value := range p.extraHeaders {
+		req.Header.Set(key, value)
 	}
 
 	resp, err := p.httpClient.Do(req)

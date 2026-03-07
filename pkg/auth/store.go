@@ -18,6 +18,7 @@ type AuthCredential struct {
 	AuthMethod   string    `json:"auth_method"`
 	Email        string    `json:"email,omitempty"`
 	ProjectID    string    `json:"project_id,omitempty"`
+	ResourceURL  string    `json:"resource_url,omitempty"`
 }
 
 type AuthStore struct {
