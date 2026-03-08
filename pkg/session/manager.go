@@ -13,10 +13,20 @@ import (
 
 type Session struct {
 	Key      string              `json:"key"`
+	Title    string              `json:"title,omitempty"`
 	Messages []providers.Message `json:"messages"`
 	Summary  string              `json:"summary,omitempty"`
 	Created  time.Time           `json:"created"`
 	Updated  time.Time           `json:"updated"`
+}
+
+type SessionInfo struct {
+	Key          string    `json:"key"`
+	Title        string    `json:"title,omitempty"`
+	Summary      string    `json:"summary,omitempty"`
+	Created      time.Time `json:"created"`
+	Updated      time.Time `json:"updated"`
+	MessageCount int       `json:"message_count"`
 }
 
 type SessionManager struct {
@@ -111,6 +121,35 @@ func (sm *SessionManager) GetSummary(key string) string {
 	return session.Summary
 }
 
+func (sm *SessionManager) GetTitle(key string) string {
+	sm.mu.RLock()
+	defer sm.mu.RUnlock()
+
+	session, ok := sm.sessions[key]
+	if !ok {
+		return ""
+	}
+	return session.Title
+}
+
+func (sm *SessionManager) SetTitle(key string, title string) {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+
+	session, ok := sm.sessions[key]
+	if !ok {
+		session = &Session{
+			Key:      key,
+			Messages: []providers.Message{},
+			Created:  time.Now(),
+		}
+		sm.sessions[key] = session
+	}
+
+	session.Title = title
+	session.Updated = time.Now()
+}
+
 func (sm *SessionManager) SetSummary(key string, summary string) {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
@@ -179,6 +218,7 @@ func (sm *SessionManager) Save(key string) error {
 
 	snapshot := Session{
 		Key:     stored.Key,
+		Title:   stored.Title,
 		Summary: stored.Summary,
 		Created: stored.Created,
 		Updated: stored.Updated,
@@ -279,4 +319,22 @@ func (sm *SessionManager) SetHistory(key string, history []providers.Message) {
 		session.Messages = msgs
 		session.Updated = time.Now()
 	}
+}
+
+func (sm *SessionManager) ListSessions() []SessionInfo {
+	sm.mu.RLock()
+	defer sm.mu.RUnlock()
+
+	items := make([]SessionInfo, 0, len(sm.sessions))
+	for _, session := range sm.sessions {
+		items = append(items, SessionInfo{
+			Key:          session.Key,
+			Title:        session.Title,
+			Summary:      session.Summary,
+			Created:      session.Created,
+			Updated:      session.Updated,
+			MessageCount: len(session.Messages),
+		})
+	}
+	return items
 }

@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/sipeed/picoclaw/internal/app/catalog"
+	"github.com/sipeed/picoclaw/internal/app/chat"
 	"github.com/sipeed/picoclaw/internal/app/googleauth"
 	"github.com/sipeed/picoclaw/internal/app/modelcatalog"
 	"github.com/sipeed/picoclaw/internal/app/openaiauth"
@@ -26,6 +27,10 @@ func main() {
 	catalogService := catalog.NewService()
 	catalogHandler := uihttp.NewCatalogHandler(catalogService)
 	catalogHandler.Register(mux)
+
+	chatService := chat.NewService()
+	chatHandler := uihttp.NewChatHandler(chatService)
+	chatHandler.Register(mux)
 
 	modelCatalogService := modelcatalog.NewService()
 	modelCatalogHandler := uihttp.NewProviderModelsHandler(modelCatalogService)
