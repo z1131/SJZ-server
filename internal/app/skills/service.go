@@ -390,9 +390,8 @@ func appendUnique(values []string, value string) []string {
 
 func defaultCommunities() []dto.SkillCommunityItem {
 	return []dto.SkillCommunityItem{
-		{ID: "clawhub", Name: "ClawHub", URL: "https://github.com/sipeed/openclaw"},
+		{ID: "clawhub", Name: "ClawHub", URL: "https://clawhub.ai/"},
 		{ID: "github", Name: "GitHub", URL: "https://github.com/topics/agent-skills"},
-		{ID: "awesome-skills", Name: "Awesome Skills", URL: "https://github.com/topics/model-context-protocol"},
 	}
 }
 
