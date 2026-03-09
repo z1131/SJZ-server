@@ -21,6 +21,7 @@ type ContextBuilder struct {
 	workspace    string
 	skillsLoader *skills.SkillsLoader
 	memory       *MemoryStore
+	skillsFilter []string
 
 	// Cache for system prompt to avoid rebuilding on every call.
 	// This fixes issue #607: repeated reprocessing of the entire context.
@@ -58,7 +59,19 @@ func NewContextBuilder(workspace string) *ContextBuilder {
 	builtinSkillsDir := strings.TrimSpace(os.Getenv("PICOCLAW_BUILTIN_SKILLS"))
 	if builtinSkillsDir == "" {
 		wd, _ := os.Getwd()
-		builtinSkillsDir = filepath.Join(wd, "skills")
+		candidates := []string{
+			filepath.Join(wd, "skills"),
+			filepath.Join(wd, "workspace", "skills"),
+		}
+		for _, candidate := range candidates {
+			if info, err := os.Stat(candidate); err == nil && info.IsDir() {
+				builtinSkillsDir = candidate
+				break
+			}
+		}
+		if builtinSkillsDir == "" {
+			builtinSkillsDir = candidates[0]
+		}
 	}
 	globalSkillsDir := filepath.Join(getGlobalConfigDir(), "skills")
 
@@ -67,6 +80,17 @@ func NewContextBuilder(workspace string) *ContextBuilder {
 		skillsLoader: skills.NewSkillsLoader(workspace, globalSkillsDir, builtinSkillsDir),
 		memory:       NewMemoryStore(workspace),
 	}
+}
+
+func (cb *ContextBuilder) SetSkillsFilter(skillNames []string) {
+	cb.systemPromptMutex.Lock()
+	defer cb.systemPromptMutex.Unlock()
+
+	cb.skillsFilter = append([]string(nil), skillNames...)
+	cb.cachedSystemPrompt = ""
+	cb.cachedAt = time.Time{}
+	cb.existedAtCache = nil
+	cb.skillFilesAtCache = nil
 }
 
 func (cb *ContextBuilder) getIdentity() string {
@@ -107,7 +131,7 @@ func (cb *ContextBuilder) BuildSystemPrompt() string {
 	}
 
 	// Skills - show summary, AI can read full content with read_file tool
-	skillsSummary := cb.skillsLoader.BuildSkillsSummary()
+	skillsSummary := cb.skillsLoader.BuildSkillsSummaryFiltered(cb.skillsFilter)
 	if skillsSummary != "" {
 		parts = append(parts, fmt.Sprintf(`# Skills
 
@@ -636,7 +660,7 @@ func (cb *ContextBuilder) AddAssistantMessage(
 
 // GetSkillsInfo returns information about loaded skills.
 func (cb *ContextBuilder) GetSkillsInfo() map[string]any {
-	allSkills := cb.skillsLoader.ListSkills()
+	allSkills := cb.skillsLoader.ListSkillsFiltered(cb.skillsFilter)
 	skillNames := make([]string, 0, len(allSkills))
 	for _, s := range allSkills {
 		skillNames = append(skillNames, s.Name)

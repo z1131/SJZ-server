@@ -146,6 +146,33 @@ func (sl *SkillsLoader) ListSkills() []SkillInfo {
 	return skills
 }
 
+func (sl *SkillsLoader) ListSkillsFiltered(skillNames []string) []SkillInfo {
+	if len(skillNames) == 0 {
+		return sl.ListSkills()
+	}
+
+	allowed := make(map[string]struct{}, len(skillNames))
+	for _, name := range skillNames {
+		trimmed := strings.TrimSpace(name)
+		if trimmed == "" {
+			continue
+		}
+		allowed[trimmed] = struct{}{}
+	}
+	if len(allowed) == 0 {
+		return sl.ListSkills()
+	}
+
+	allSkills := sl.ListSkills()
+	filtered := make([]SkillInfo, 0, len(allSkills))
+	for _, skill := range allSkills {
+		if _, ok := allowed[skill.Name]; ok {
+			filtered = append(filtered, skill)
+		}
+	}
+	return filtered
+}
+
 func (sl *SkillsLoader) LoadSkill(name string) (string, bool) {
 	// 1. load from workspace skills first (project-level)
 	if sl.workspaceSkills != "" {
@@ -191,7 +218,11 @@ func (sl *SkillsLoader) LoadSkillsForContext(skillNames []string) string {
 }
 
 func (sl *SkillsLoader) BuildSkillsSummary() string {
-	allSkills := sl.ListSkills()
+	return sl.BuildSkillsSummaryFiltered(nil)
+}
+
+func (sl *SkillsLoader) BuildSkillsSummaryFiltered(skillNames []string) string {
+	allSkills := sl.ListSkillsFiltered(skillNames)
 	if len(allSkills) == 0 {
 		return ""
 	}

@@ -266,6 +266,36 @@ func TestListSkillsDirWithoutSkillMD(t *testing.T) {
 	assert.Equal(t, "real-skill", skills[0].Name)
 }
 
+func TestListSkillsFiltered(t *testing.T) {
+	tmp := t.TempDir()
+	ws := filepath.Join(tmp, "workspace")
+	global := filepath.Join(tmp, "global")
+
+	createSkillDir(t, filepath.Join(ws, "skills"), "weather", "weather", "desc weather")
+	createSkillDir(t, global, "github", "github", "desc github")
+
+	sl := NewSkillsLoader(ws, global, "")
+	skills := sl.ListSkillsFiltered([]string{"github"})
+
+	assert.Len(t, skills, 1)
+	assert.Equal(t, "github", skills[0].Name)
+}
+
+func TestBuildSkillsSummaryFiltered(t *testing.T) {
+	tmp := t.TempDir()
+	ws := filepath.Join(tmp, "workspace")
+	global := filepath.Join(tmp, "global")
+
+	createSkillDir(t, filepath.Join(ws, "skills"), "weather", "weather", "desc weather")
+	createSkillDir(t, global, "github", "github", "desc github")
+
+	sl := NewSkillsLoader(ws, global, "")
+	summary := sl.BuildSkillsSummaryFiltered([]string{"weather"})
+
+	assert.Contains(t, summary, "<name>weather</name>")
+	assert.NotContains(t, summary, "<name>github</name>")
+}
+
 func TestStripFrontmatter(t *testing.T) {
 	sl := &SkillsLoader{}
 

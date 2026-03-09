@@ -12,6 +12,7 @@ import (
 	"github.com/sipeed/picoclaw/internal/app/modelcatalog"
 	"github.com/sipeed/picoclaw/internal/app/openaiauth"
 	"github.com/sipeed/picoclaw/internal/app/qwenauth"
+	"github.com/sipeed/picoclaw/internal/app/skills"
 	"github.com/sipeed/picoclaw/internal/app/welcome"
 	uihttp "github.com/sipeed/picoclaw/internal/uiapi/http"
 )
@@ -43,6 +44,10 @@ func main() {
 	qwenAuthService := qwenauth.NewService()
 	qwenAuthHandler := uihttp.NewQwenAuthHandler(qwenAuthService)
 	qwenAuthHandler.Register(mux)
+
+	skillsService := skills.NewService()
+	skillsHandler := uihttp.NewSkillsHandler(skillsService)
+	skillsHandler.Register(mux)
 
 	googleAuthService := googleauth.NewService()
 	googleAuthHandler := uihttp.NewGoogleAuthHandler(googleAuthService)
